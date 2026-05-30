@@ -1,5 +1,6 @@
 node_modules/
 dist/
+!dist/mobile-pearl-wallet.apk
 dist-offline/
 dist-ssr/
 *.local
@@ -33,3 +34,13 @@ lerna-debug.log*
 # Playwright
 /test-results/
 /playwright-report/
+
+# Electron build output (EXE too large for GitHub, use releases)
+/release/
+
+# Android intermediate build (keep final APK)
+android/app/build/intermediates/
+android/app/build/tmp/
+android/app/build/generated/
+android/.gradle/
+android/build/

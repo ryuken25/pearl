@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.3.1",
   "type": "module",
+  "main": "electron/main.js",
   "description": "Non-custodial pure-web wallet for PRL + WPRL with native PearlBridge integration",
   "license": "MIT",
   "scripts": {
@@ -14,7 +15,35 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts,.tsx --report-unused-disable-directives --max-warnings 0",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "electron:start": "electron .",
+    "electron:build": "npm run build && electron-builder --win --x64",
+    "android:build": "npm run build && npx cap sync android"
+  },
+  "build": {
+    "appId": "xyz.pearlwallet.desktop",
+    "productName": "Pearl Wallet",
+    "copyright": "MIT",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "extraMetadata": {
+      "main": "electron/main.js"
+    },
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "shortcutName": "Pearl Wallet"
+    }
   },
   "dependencies": {
     "@capacitor/android": "^6.2.1",
@@ -43,6 +72,8 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.2",
     "autoprefixer": "^10.4.20",
+    "electron": "^42.3.0",
+    "electron-builder": "^26.8.1",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.13",
     "typescript": "^5.6.2",
