@@ -1,166 +1,220 @@
-# Pearl Web Wallet
+# Mobile Pearl Wallet
 
-**A non-custodial, pure-web wallet for Pearl L1 (PRL) and Wrapped PRL (WPRL) on Ethereum, with native PearlBridge integration.**
+Dompet (wallet) **non-custodial** untuk **Pearl L1 (PRL)** dalam bentuk aplikasi
+Android (APK) + PWA. Dibangun di atas [PearlBridgeXYZ/pearlwallet](https://github.com/PearlBridgeXYZ/pearlwallet)
+— **derivasi BIP-39, penandatanganan (signing), dan WebWorker kripto-nya dipakai
+ulang apa adanya (verbatim)**, tanpa ditulis ulang. Yang ditambahkan hanya UI +
+fitur: rebrand, Receive terkunci, tip developer, multi-akun, dan multi-send.
 
-🔗 **Live:** [pearlwallet.xyz](https://pearlwallet.xyz) · Mirror: [wallet.mrb.sh](https://wallet.mrb.sh)
-📦 **Releases:** [github.com/PearlBridgeXYZ/pearlwallet/releases](https://github.com/PearlBridgeXYZ/pearlwallet/releases) — every tag ships a single-file offline HTML for air-gapped use.
-🛠 **Status:** Shipping. Currently at `v0.1.18`. Pre-`v1.0` — flagged experimental until the public audit lands.
-
----
-
-## Why use it
-
-**Hold your own keys.** Most "wallets" today are either custodial websites (where someone else holds your funds) or browser-extension black boxes you can't easily inspect. The Pearl Web Wallet is a single-page web app you load from a URL or run from a single offline HTML file. Your seed phrase is generated in your browser, encrypted with your password, and never leaves your device.
-
-**Hold PRL on Pearl L1 *and* WPRL on Ethereum, side by side.** Most PRL holders today have to juggle two different wallets, two different mnemonics, and a brittle manual bridge dance. This wallet derives both addresses from one BIP-39 seed (BIP-86 Taproot for Pearl, BIP-44 for Ethereum), shows both balances on one screen, and integrates the [PearlBridge](https://pearlbridge.xyz) contracts so moving value between the two chains is a one-click operation.
-
-**Run it from a USB stick on an air-gapped machine.** Every release tag ships a `pearlwallet-offline-vX.Y.Z.html` build — one self-contained HTML file, no network fetches, no `<script src="...">`, worker bundled in as a data URI. Open it in a browser on a laptop that has never seen the internet, generate a wallet, sign a transaction, walk the signed bytes back via QR or USB. The same code path that runs at `pearlwallet.xyz` runs offline.
+> **Catatan kunci soal kripto.** Pearl L1 di sini adalah turunan btcd/Bitcoin
+> yang memakai **Taproot (BIP-86) + tanda tangan Schnorr BIP-340 (secp256k1)** dan
+> berbasis **UTXO**. Tanda tangannya **stateless** — **tidak ada XMSS**, tidak ada
+> "one-time key" yang harus dimajukan, jadi **tidak ada risiko kebocoran kunci
+> akibat pemakaian indeks berulang**. Lihat bagian [Soal keamanan](#soal-keamanan-penting).
 
 ---
 
-## What's good about it
+## Daftar isi
 
-### Auditable
-
-- **100% open source TypeScript / React / Vite.** No minified blobs in the supply chain.
-- **Pinned dependencies.** Crypto comes from [`@scure/bip32`](https://github.com/paulmillr/scure-bip32), [`@scure/bip39`](https://github.com/paulmillr/scure-bip39), [`@scure/btc-signer`](https://github.com/paulmillr/scure-btc-signer), [`@noble/curves`](https://github.com/paulmillr/noble-curves), [`@noble/hashes`](https://github.com/paulmillr/noble-hashes), and [`viem`](https://viem.sh) — the same primitives that back most serious wallets today.
-- **27 public audit reports in this repo** as of `v0.1.18`, covering every release back to `v0.1.0`. Each one names the auditor, lists findings by severity (Critical / High / Medium / Low), and either fixes the finding before the release or carries it forward with a public status note. See `AUDIT-v*.md` at the repo root.
-- **Reproducible build.** `git clone`, `npm install`, `npm run build` — the bundle hashes in the GitHub Release notes are what you should see locally.
-- **Pinned address derivation.** The test suite proves that the BIP-39 vector-1 mnemonic, fed through this wallet, produces the same five Pearl L1 addresses as `btcd-oyster` (the canonical Pearl L1 reference wallet) byte-for-byte. If derivation ever regresses, the test suite refuses to ship.
-
-### Defensible (threat model)
-
-The wallet is built assuming the network is hostile, the host browser is partially hostile, and an attacker may have local-tab JavaScript injection capability or shoulder-surf access to the screen.
-
-- **Strict Content Security Policy.** `connect-src` is allowlisted to a small set of trusted RPC hosts (PearlBridge sentry RPC, [publicnode.com](https://publicnode.com) Ethereum RPC, [drpc.org](https://drpc.org)). A custom RPC override is also constrained to that allowlist at the store boundary so a stray bookmarklet can't redirect price queries to an attacker.
-- **WebWorker-isolated crypto.** Signing, key derivation, and password-derived AES-GCM decryption all happen inside a `?worker` whose only message contract is `(intent, public inputs) → (signed bytes)`. The main thread sees neither the seed nor the private keys at any point after unlock.
-- **PBKDF2-600k AES-256-GCM keystore.** Encrypted blob is stored in IndexedDB (via Dexie). Random salt + IV per encryption. AAD binds the ciphertext to a wallet ID so a swapped ciphertext from a different keystore can't decrypt under the same password.
-- **60-second clipboard auto-clear.** Copy your address → 60s later the clipboard is wiped (best-effort under browser permissions).
-- **Auto-lock with activity tracking.** A monotonic-clock timer locks the wallet on idle. Visibility-change handling closes the gap where a backgrounded tab's `setInterval` is throttled. Tab-switch immediately hides any revealed seed phrase.
-- **Sign-what-you-saw.** The transaction preview the user approves is the exact byte-for-byte payload sent to the worker. A malicious main-thread script cannot mutate the tx between approval and signing.
-- **No telemetry, no analytics, no third-party fonts, no CDN.** Every asset is local. The wallet operator cannot see who's using the wallet or what they're doing.
-
-### Honest
-
-- **Pre-1.0.** The wallet is shipping and people use it, but it has not yet been through a paid third-party audit. Treat balances above what you'd carry as cash with appropriate caution until the `v1.0` audit ships.
-- **Mainnet only.** Pearl has no testnet. The wallet refuses any non-mainnet HRP at the address codec to make sure a future testnet vector can't silently load into your real keystore.
-- **Lose your mnemonic, lose your funds.** There is no recovery service. No password reset. No "contact support." This is stated bluntly in onboarding because it's the truth.
+- [Fitur](#fitur)
+- [Cara Pakai (Tutorial)](#cara-pakai)
+  - [1. Pasang / sideload APK](#1-pasang--sideload-apk)
+  - [2. Buat atau impor akun](#2-buat-atau-impor-akun)
+  - [3. Menerima PRL (Receive)](#3-menerima-prl-receive)
+  - [4. Mengirim PRL — dengan / tanpa tip](#4-mengirim-prl--dengan--tanpa-tip)
+  - [5. Multi-send (kirim ke banyak alamat sekaligus)](#5-multi-send)
+  - [6. Multi-akun (ganti akun)](#6-multi-akun)
+  - [7. Pengaturan tip](#7-pengaturan-tip)
+- [Soal keamanan (penting)](#soal-keamanan-penting)
+- [Build dari source](#build-dari-source)
+- [Apa yang dipakai-ulang vs ditambahkan](#apa-yang-dipakai-ulang-vs-ditambahkan)
 
 ---
 
-## Features
+## Fitur
 
-### Today (`v0.1.18`)
-
-- ✅ Create a fresh wallet (12-word BIP-39 mnemonic, generated in-browser).
-- ✅ Restore from an existing 12 or 24-word mnemonic. Whitespace-tolerant — paste from anywhere.
-- ✅ Hold + send **PRL** on Pearl L1 (Taproot P2TR).
-- ✅ Hold + send **WPRL** on Ethereum (EIP-1559).
-- ✅ Hold + send **ETH** for gas.
-- ✅ **Bridge** PRL ↔ WPRL via the PearlBridge contracts — both directions, with on-screen previews.
-- ✅ Real-time **balances** aggregated across the receive pool (BIP-86 gap-limit walk of 20 addresses).
-- ✅ **Recent activity** scanner — pulls confirmed sends/receives from the Pearl sentry RPC + Ethereum, with explorer links.
-- ✅ **Receive** view with QR + copy-to-clipboard.
-- ✅ **Optional dev tip** (10 bps / 1 PRL floor, opt-out, defaults on) — keeps the project funded without anyone owing anyone anything.
-- ✅ **Custom RPC endpoint** for users running their own Pearl node.
-- ✅ **Light / dark / system theme.**
-- ✅ **Single-file offline HTML release** attached to every tag for air-gapped use.
-- ✅ **PWA install** — pin it to your dock and run it like a native app (still 100% in-browser, no native code).
-- ✅ **Settings**: lock now, change password, export recovery phrase (60s auto-hide), wipe wallet from device.
-
-### In development
-
-- 🚧 **Multisig vaults.** The on-chain primitives ship in `v0.1.18` behind an opt-in Settings toggle (default off). When enabled, the wallet exposes a `Vaults` surface that documents the construction so it can be independently audited:
-  - BIP-342 tapscript m-of-n under a P2TR output
-  - Internal key bound to the BIP-341 NUMS point (key-path spend provably disabled)
-  - BIP-67-sorted cosigner pubkeys (deterministic address reconstruction)
-  - Dedicated derivation path `m/86'/808276'/100'/{account}'/{i}` kept apart from the singlesig receive pool
-  - JSON cosigner descriptor format for safe copy-paste cosigner enrolment
-
-  The user-facing flows — create vault, exchange cosigner descriptors, draft and co-sign transactions, optional Gnosis-Safe signer mode for the WPRL/ETH side — land in `v0.1.19+`. **Don't move funds into a vault yet — there's no spend flow.** Turn the surface off in Settings if you'd rather not see it.
-
-### Future
-
-- Hardware wallet support (Ledger / Trezor)
-- Multiple accounts per mnemonic
-- Browser-extension surface for dApp connectivity
-- Mobile native app
+| Fitur | Keterangan |
+|---|---|
+| **Rebrand** | Nama "Mobile Pearl Wallet", logo motif kerang + mutiara (palet warna Pearl). |
+| **Receive terkunci** | Hanya menampilkan **satu** alamat `prl1...` utama per akun + QR + tombol salin. Tidak pernah membuat alamat acak. |
+| **Send + tip opsional** | Setiap pengiriman menampilkan checkbox "Send 0.5 PRL tip to support the dev" (**dicentang secara default**, bisa dimatikan). |
+| **Multi-akun** | Impor/restore banyak akun dari seed phrase, lihat daftarnya, ganti akun aktif (gaya Zano). |
+| **Multi-send** | Kirim ke banyak penerima dalam **satu transaksi** (gaya batch OKX). |
+| **Aman & ringan** | Auto-lock, ekspor seed auto-hide, RPC allowlist + CSP bawaan dipertahankan. Semua RPC/signing dibungkus try/catch — tidak crash saat jaringan gagal. |
 
 ---
 
-## Try it
+## Cara Pakai
 
-**Easiest:** open [pearlwallet.xyz](https://pearlwallet.xyz) and click *Create new wallet*. Write down the 12 words. Set a password. Done.
+### 1. Pasang / sideload APK
 
-**Air-gapped:** grab `pearlwallet-offline-v0.1.18.html` from the [latest release](https://github.com/PearlBridgeXYZ/pearlwallet/releases/latest), move it to an offline machine, and open it in a browser. The whole wallet runs from `file://`.
+1. Unduh berkas **`dist/mobile-pearl-wallet.apk`** dari repo ini ke ponsel Android.
+2. Di ponsel, buka **Settings → Apps → Special access → Install unknown apps**
+   (atau saat membuka APK akan muncul prompt), lalu **izinkan** browser/file
+   manager yang dipakai untuk memasang aplikasi.
+3. Buka berkas APK → ketuk **Install** → **Open**.
+4. APK ini **debug-signed** (untuk sideload/uji coba). Android mungkin menampilkan
+   peringatan "aplikasi dari sumber tak dikenal" — itu wajar untuk APK di luar
+   Play Store.
 
-**From source:**
+> Alternatif tanpa pasang APK: jalankan versi web/PWA (lihat
+> [Build dari source](#build-dari-source)) lalu "Add to Home screen".
+
+### 2. Buat atau impor akun
+
+**Buat baru:**
+1. Buka aplikasi → **Create a new wallet**.
+2. **Catat 12 kata seed phrase** di kertas (jangan screenshot, jangan simpan di
+   cloud). Tunggu beberapa detik lalu **I've written it down**.
+3. Verifikasi kata ke-3, 7, dan 11.
+4. Buat **password** untuk membuka kunci di perangkat ini, centang pernyataan,
+   lalu **Create wallet**.
+
+**Impor dari seed phrase yang sudah ada:** lihat [Multi-akun](#6-multi-akun) —
+caranya sama, lewat tombol **Import another account**.
+
+> ⚠️ **Jangan pernah** membagikan seed phrase. Siapa pun yang punya 12/24 kata itu
+> menguasai dana Anda. Aplikasi ini **tidak pernah** mengirim seed/kunci ke mana
+> pun — semuanya tersimpan terenkripsi di perangkat.
+
+### 3. Menerima PRL (Receive)
+
+1. Dari Dashboard, ketuk **Receive**.
+2. Layar menampilkan **satu alamat `prl1...` tetap** milik akun aktif + **QR code**.
+3. Ketuk **Copy address** untuk menyalin, atau minta pengirim memindai QR.
+
+Alamat ini **tidak berubah** — aman dibagikan berkali-kali. (Wallet tetap
+melacak saldo di seluruh pool alamat turunan secara internal; layar Receive
+sengaja hanya menampilkan alamat utama, tidak membuat alamat acak baru.)
+
+### 4. Mengirim PRL — dengan / tanpa tip
+
+1. Dashboard → **Send PRL**.
+2. Isi **alamat tujuan** (`prl1p...`) dan **jumlah** PRL, pilih **fee tier**
+   (low/normal/high), lalu **Review**.
+3. Di layar konfirmasi muncul rincian: **Amount**, **Fee**, **Dev tip**,
+   **Change** (kembalian), dan **Total leaving wallet**.
+4. **Tip developer:** checkbox **"Send 0.5 PRL tip to support the dev"**
+   **dicentang secara default**.
+   - **Biarkan tercentang** → tip 0.5 PRL ikut sebagai output tambahan **dalam
+     transaksi yang sama** (hemat — hanya satu fee). Alamat tip ditampilkan
+     transparan: `prl1pl3ekgkcty7qy8rktk64km4zl6zrxu0ncc43mvh82kca2zdve2p0q3jv9fy`.
+   - **Hilangkan centang** → **tidak ada** output tip sama sekali; Anda hanya
+     bayar fee jaringan.
+5. Wallet memvalidasi **jumlah + tip + fee ≤ saldo**. Jika kurang, muncul pesan
+   jelas berapa yang dibutuhkan vs ditemukan — pengiriman diblokir.
+6. Ketuk **Send**. Setelah broadcast, muncul **txid** + tautan explorer.
+
+### 5. Multi-send
+
+Kirim ke banyak penerima sekaligus dalam **satu transaksi** (hemat fee, dan
+secara teknis aman karena UTXO yang sama tidak mungkin dipakai dua kali).
+
+1. Dashboard → **Send to many**.
+2. Isi tiap baris **Recipient**: alamat + jumlah. Ketuk **+ Add recipient**
+   untuk menambah, atau **Remove** untuk menghapus baris.
+3. Pilih fee tier, dan (opsional) centang tip developer.
+4. **Review batch** → muncul ringkasan: daftar penerima, **Recipients total**,
+   **Fee**, **Dev tip**, **Change**, dan **Total leaving wallet**.
+5. Ketuk **Send to N** untuk broadcast.
+
+### 6. Multi-akun
+
+1. Dashboard → ketuk **chip akun** di atas (atau tombol **Accounts**).
+2. Daftar semua akun muncul; akun aktif ditandai **Active**.
+3. **Ganti akun:** ketuk **Switch** pada akun lain.
+4. **Impor akun baru:** **+ Import another account** → beri nama (opsional) →
+   tempel **seed phrase** (12/24 kata) → **Import account**.
+5. **Hapus akun:** tombol **Remove** (hanya untuk akun non-aktif; akun terakhir
+   tidak bisa dihapus).
+
+> ⚠️ **Peringatan multi-perangkat:** hindari menandatangani transaksi dengan
+> seed phrase yang **sama** di dua perangkat **secara bersamaan**. Karena Pearl L1
+> memakai tanda tangan Taproot yang stateless, ini **bukan** risiko kebocoran
+> kunci — tetapi tiap perangkat melacak UTXO-nya sendiri, sehingga menjalankan
+> seed yang sama secara paralel bisa membuat satu perangkat mencoba membelanjakan
+> koin yang sudah dipindahkan perangkat lain (transaksi gagal/tertolak).
+
+### 7. Pengaturan tip
+
+**Settings → Support the dev (tip):**
+- **Aktif/nonaktif** tip secara global (default: aktif).
+- **Tip amount (PRL):** ubah nominal tip (default **0.5 PRL**).
+- Alamat penerima tip ditampilkan transparan.
+
+Mau pakai gratis? Matikan tip di sini, atau cukup hilangkan centang di tiap
+pengiriman. Wallet ini gratis di luar fee jaringan.
+
+---
+
+## Soal keamanan (penting)
+
+- **Bukan XMSS.** Brief awal menyebut Pearl L1 memakai XMSS (tanda tangan
+  post-quantum yang *stateful*). Pada kode sebenarnya, Pearl L1 di repo upstream
+  memakai **Taproot + Schnorr secp256k1 (stateless, berbasis UTXO)**. Maka:
+  - Tip & multi-send dikirim sebagai **output biasa** — **tidak ada** "one-time
+    key" yang perlu dimajukan, **tidak ada** risiko reuse-indeks.
+  - Yang tetap relevan: **pemilihan UTXO**. Karena itu multi-send memakai
+    **satu transaksi multi-output** (bukan banyak transaksi terpisah), sehingga
+    UTXO yang sama tidak mungkin dibelanjakan ganda dalam satu batch.
+- **Seed tidak pernah keluar perangkat.** Tidak ada seed/kunci yang di-hardcode
+  atau dikirim ke server. Seed disimpan **terenkripsi** (PBKDF2 + AES-256-GCM).
+- **Fitur upstream dipertahankan:** auto-lock saat idle, ekspor seed auto-hide,
+  CSP + allowlist RPC.
+- **Tahan crash:** semua panggilan RPC/signing dibungkus try/catch dengan pesan
+  yang bisa dibaca pengguna; kegagalan jaringan tidak membuat aplikasi crash.
+- **APK debug-signed:** untuk sideload/uji. Untuk distribusi publik sebaiknya
+  ditandatangani dengan keystore rilis Anda sendiri.
+
+---
+
+## Build dari source
+
+Prasyarat: Node 20+, JDK 17/21, Android SDK (platform 34, build-tools 34).
 
 ```bash
-git clone https://github.com/PearlBridgeXYZ/pearlwallet.git
-cd pearlwallet
 npm install
-npm test                # full suite — 286 tests, ~10s
-npm run build           # production bundle → dist/
-npm run build:offline   # single-file HTML → dist-offline/pearlwallet-offline-vX.Y.Z.html
+
+# Jalankan tes upstream (termasuk vektor derivasi BIP-39)
+npm test
+
+# Build web/PWA
+npm run build            # hasil di dist/
+
+# Pratinjau web
+npm run preview          # http://localhost:4173
+
+# Screenshot walkthrough (Playwright)
+npx playwright test      # hasil di screenshots/
+
+# Build APK Android (debug)
+npx cap sync android
+cd android && ./gradlew assembleDebug
+#   APK: android/app/build/outputs/apk/debug/app-debug.apk
 ```
+
+APK siap-pakai sudah disertakan di **`dist/mobile-pearl-wallet.apk`**.
 
 ---
 
-## How it's built
+## Apa yang dipakai-ulang vs ditambahkan
 
-### Stack
+**Dipakai ulang (verbatim, tidak diubah):**
+- `src/crypto/*` — WebWorker, derivasi HD (BIP-39/BIP-32/BIP-86), mnemonic,
+  keystore (PBKDF2 + AES-GCM).
+- `src/chains/pearl/address.ts` — codec alamat Taproot bech32m + tweak BIP-86.
+- Penandatanganan transaksi Pearl (`signPearlTx` via `@scure/btc-signer`).
+- CSP, allowlist RPC, auto-lock, multi-tab keystore sync.
 
-- **Vite 5 + React 18 + TypeScript (strict).** No global state framework, [Zustand](https://github.com/pmndrs/zustand) for the small amount that's needed.
-- **Tailwind 3.4** for styling. No design framework, no CSS-in-JS, no runtime tokens.
-- **Dexie 4** wraps IndexedDB for the encrypted keystore + activity cache.
-- **viem 2** for Ethereum interactions (balance reads, EIP-1559 sends, ERC-20 calls).
-- **@scure/btc-signer** for Pearl L1 — Taproot encoding, P2TR derivation, multisig leaves.
-- **@scure/bip32 + @scure/bip39 + @noble/hashes + @noble/curves** for the crypto primitives.
+**Ditambahkan / diubah (UI + fitur):**
+- Rebrand "Mobile Pearl Wallet" + logo/ikon baru.
+- `Receive` dikunci ke satu alamat utama.
+- Tip developer: nominal **flat** yang bisa diatur (default 0.5 PRL), alamat tip
+  baru, checkbox per-transaksi (dicentang default) → output gabungan satu tx.
+- Multi-akun: tabel keystore multi-record + pointer akun aktif (`src/storage/db.ts`,
+  `src/state/wallet-store.ts`, halaman `Accounts`).
+- Multi-send: `composePearlMultiSend` (satu tx multi-output) + halaman `MultiSend`.
+- Capacitor (Android) + skrip ikon + walkthrough Playwright.
 
-### Layout
-
-```
-src/
-├── chains/
-│   ├── pearl/           Pearl L1: address codec, multisig, network params, RPC
-│   └── eth/             Ethereum: WPRL contract, gas estimator, send flows
-├── crypto/              BIP-39 mnemonic, BIP-32 HD, descriptor format, keystore
-├── lib/                 small utilities (format, validate, monotonic clock)
-├── services/            higher-level: balances, prices, activity, bridge, tx-sim
-├── state/               Zustand stores (wallet, UI)
-├── storage/             Dexie schema
-├── ui/                  React components + page-level views
-├── worker.ts            Web Worker for crypto isolation
-└── App.tsx              routing + auto-lock
-tests/                   Vitest suite, 286 tests
-docs/                    spec docs, threat model, architecture notes
-AUDIT-v*.md              public audit reports, one per release
-```
-
-### Release cycle
-
-Each release follows the same loop:
-
-1. **Implement** the smallest meaningful change.
-2. **Test** — add tests for the new behavior, run the full suite.
-3. **Audit** — independent review pass, written up as `AUDIT-vX.Y.Z-*.md`, severity-classified.
-4. **Fix** anything the audit surfaces.
-5. **Build, deploy, tag, release** — bundle hashes published in the GitHub Release notes.
-
-The loop runs until the audit is `0/0/0/0`. Then we ship.
-
----
-
-## Contact
-
-- **Maintainer:** Bridge Developer — `bridgedev@mailbox.org`
-- **Bridge project:** [PearlBridge](https://pearlbridge.xyz)
-- **Repo:** [github.com/PearlBridgeXYZ/pearlwallet](https://github.com/PearlBridgeXYZ/pearlwallet)
-- **Issues / PRs welcome.** Please don't open issues with private vulnerability details — email `bridgedev@mailbox.org` first.
-
----
-
-## License
-
-MIT. See [LICENSE](./LICENSE).
+Lihat **laporan akhir** (final report) di chat untuk hasil tes derivasi dan
+catatan lengkap.
