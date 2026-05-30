@@ -195,11 +195,17 @@ test("full wallet walkthrough screenshots", async ({ page }) => {
   await shot(page, "13-multisend-confirm.png");
   await toDash();
 
-  // 13) Merge / consolidate — mandatory 0.1 PRL tip
-  await page.getByRole("link", { name: "Merge coins" }).click();
+  // 13) Merge — sweep all PRL to ONE destination wallet; mandatory 0.1 PRL tip
+  await page.getByRole("link", { name: "Merge PRL to 1 wallet" }).click();
+  await expect(page.getByTestId("merge-dest-self")).toBeVisible();
+  // Sweep to a custom external wallet to show destination selection.
+  await page.getByTestId("merge-dest-custom").check();
+  await page.getByTestId("merge-custom-addr").fill(DEST_A);
+  await shot(page, "16-merge-destination.png");
   await page.getByTestId("merge-review").click();
   await expect(page.getByText("Confirm merge")).toBeVisible({ timeout: 20000 });
   await expect(page.getByText("Dev tip (mandatory)")).toBeVisible();
+  await expect(page.getByText("Destination wallet:")).toBeVisible();
   await shot(page, "15-merge-confirm.png");
   await toDash();
 

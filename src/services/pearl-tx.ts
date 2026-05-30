@@ -358,23 +358,29 @@ export const MERGE_TIP_GRAINS = PRL_GRAINS_PER_COIN / 10n; // 0.1 PRL
 export interface MergeOptions {
   network: PearlNetwork;
   pool: string[];
+  /** Destination wallet/address that receives the merged total. Sweep
+   *  every coin here. Can be one of the user's own accounts OR any
+   *  external prl1 address. Defaults to the wallet's own primary
+   *  (pool[0]) when omitted. */
+  destination?: string;
   feerateSatPerVbyte?: bigint;
   cachedUtxos?: PoolUtxo[];
   maxPages?: number;
 }
 
 /**
- * Merge / consolidate: sweep EVERY spendable UTXO across the receive
- * pool into a SINGLE output at the wallet's primary address (pool[0]),
- * collapsing a fragmented UTXO set into one coin. The transaction always
+ * Merge / sweep: gather EVERY spendable UTXO across the receive pool and
+ * send the whole balance to ONE destination wallet (opts.destination, or
+ * the wallet's own primary address when omitted). The transaction always
  * carries the MANDATORY 0.1 PRL developer tip as a second output — it is
  * not optional for this operation.
  *
- * Outputs: [ consolidated → pool[0], tip → tip address ].
- * No change output (the consolidated output IS the remainder).
+ * Outputs: [ swept-total → destination, tip → tip address ].
+ * No change output (the swept output IS the remainder).
  */
 export async function composePearlMerge(opts: MergeOptions): Promise<ComposedPearlTx> {
   const feerate = opts.feerateSatPerVbyte ?? PEARL_DEFAULT_FEERATE_SATS_PER_VBYTE;
+  const destination = opts.destination ?? opts.pool[0]!;
 
   // Always walk live unless a fresh cache covers the whole pool — merge
   // is explicitly about gathering *all* coins, so we never want a
@@ -401,7 +407,7 @@ export async function composePearlMerge(opts: MergeOptions): Promise<ComposedPea
 
   const consolidated = total - fee - MERGE_TIP_GRAINS;
   const outputs = [
-    { address: opts.pool[0]!, amountGrains: consolidated },
+    { address: destination, amountGrains: consolidated },
     { address: tipAddressFor(opts.network), amountGrains: MERGE_TIP_GRAINS },
   ];
 

@@ -155,7 +155,7 @@ export default function Dashboard() {
         )}
         <div className="mt-2">
           <Link to="/merge" className="btn-secondary tap block w-full text-center">
-            Merge coins
+            Merge PRL to 1 wallet
           </Link>
         </div>
         {multisigEnabled && (
