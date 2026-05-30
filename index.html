@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!--
+      Mirror the CSP in public/_headers so non-Cloudflare deployments
+      (local static servers, IPFS, S3-backed mirrors, etc.) still enforce
+      connect-src against the trusted RPC allowlist. _headers is kept for
+      defense in depth — frame-ancestors / HSTS / Permissions-Policy
+      can't be set from a <meta> tag and stay on the response header.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://rpc.pearlwallet.xyz https://ethereum-rpc.publicnode.com https://eth.drpc.org https://pearlbridge.xyz; worker-src 'self' blob:; base-uri 'self'; form-action 'self'; object-src 'none'; manifest-src 'self'"
+    />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <!--
+      Two theme-color metas: a light-mode color matched to the page bg
+      (bg-ink-50 = #f5f7fa), and a dark-mode color matched to the dark
+      bg (bg-ink-950 = #050811). iOS status bar uses the active one,
+      Chrome address bar on Android picks it up the same way. This makes
+      the standalone PWA frame blend into the wallet UI instead of
+      showing a jarring slate-blue strip up top.
+    -->
+    <meta name="theme-color" content="#f5f7fa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#050811" media="(prefers-color-scheme: dark)" />
+    <!--
+      iOS PWA hints. apple-mobile-web-app-capable removes Safari chrome
+      when launched from the home screen. status-bar-style "default"
+      means the OS picks the readable color against our theme-color.
+      format-detection=telephone=no stops iOS from auto-linking digit
+      runs (e.g. a 0.00000001 amount) as phone numbers.
+    -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Mobile Pearl Wallet" />
+    <meta name="application-name" content="Mobile Pearl Wallet" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="icon" href="/favicon-64.png" sizes="64x64" type="image/png" />
+    <link rel="apple-touch-icon" href="/logo-192.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/logo-192.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="/logo-512.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <title>Mobile Pearl Wallet</title>
+    <meta name="description" content="Mobile Pearl Wallet — non-custodial browser wallet for Pearl L1 and WPRL with native PearlBridge integration. Open source. Your keys, your browser, your funds." />
+  </head>
+  <body class="bg-ink-50 text-ink-900 antialiased dark:bg-ink-950 dark:text-ink-100">
+    <!--
+      Iframe bust. CSP `frame-ancestors` lives in public/_headers (the
+      Cloudflare deploy enforces it) but a non-CF mirror — local static
+      server, IPFS gateway, S3 bucket — would not serve those headers
+      and a malicious page could embed wallet.mrb.sh in a hidden iframe
+      to overlay/click-jack the unlock or send confirm.
+
+      Served as an external blocking script so the CSP's strict
+      `script-src 'self'` (no `'unsafe-inline'`) allows it. The script
+      element appears BEFORE the React entry module, and classic scripts
+      are not deferred — it runs synchronously before main.tsx mounts.
+      v0.1.8 audit Opus2 H-1 / Minimax2 H-1.
+    -->
+    <script src="/iframe-bust.js"></script>
+    <div id="root"></div>
+    <noscript>
+      <p style="padding: 2rem; font-family: sans-serif">
+        Mobile Pearl Wallet needs JavaScript. Enable it and reload.
+      </p>
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
