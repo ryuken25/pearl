@@ -8,16 +8,17 @@ function createWindow() {
     minWidth: 360,
     minHeight: 600,
     title: "Pearl Wallet",
-    icon: path.join(__dirname, "../public/favicon.ico"),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
     },
     autoHideMenuBar: true,
-    backgroundColor: "#0f172a",
+    backgroundColor: "#050811",
   });
 
-  const indexPath = path.join(__dirname, "../dist/index.html");
+  // dist-electron is built with base:'./' so all paths are relative,
+  // meaning loadFile (file://) resolves them correctly.
+  const indexPath = path.join(__dirname, "../dist-electron/index.html");
   win.loadFile(indexPath);
 
   win.webContents.setWindowOpenHandler(({ url }) => {

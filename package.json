@@ -16,8 +16,9 @@
     "lint": "eslint . --ext .ts,.tsx --report-unused-disable-directives --max-warnings 0",
     "test": "vitest run",
     "test:watch": "vitest",
-    "electron:start": "electron .",
-    "electron:build": "npm run build && electron-builder --win --x64",
+    "electron:start": "node_modules/electron/dist/electron.exe .",
+    "build:electron": "tsc --noEmit && vite build --config vite.config.electron.ts",
+    "electron:build": "npm run build:electron && electron-builder --win --x64",
     "android:build": "npm run build && npx cap sync android"
   },
   "build": {
@@ -28,7 +29,7 @@
       "output": "release"
     },
     "files": [
-      "dist/**/*",
+      "dist-electron/**/*",
       "electron/**/*"
     ],
     "extraMetadata": {
