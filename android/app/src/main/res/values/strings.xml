@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Mobile Pearl Wallet</string>
+    <string name="title_activity_main">Mobile Pearl Wallet</string>
+    <string name="package_name">xyz.pearlwallet.mobile</string>
+    <string name="custom_url_scheme">xyz.pearlwallet.mobile</string>
+</resources>

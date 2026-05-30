@@ -1,0 +1,51 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mobile Pearl Wallet">
+  <defs>
+    <!-- Deep pearl-blue background, matching pearl.700/900 palette -->
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2e4062"/>
+      <stop offset="1" stop-color="#1f2940"/>
+    </linearGradient>
+    <!-- The pearl itself: soft iridescent sphere -->
+    <radialGradient id="pearl" cx="0.38" cy="0.34" r="0.85">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.35" stop-color="#eaf0f8"/>
+      <stop offset="0.7" stop-color="#cbd5e3"/>
+      <stop offset="1" stop-color="#9eb1ca"/>
+    </radialGradient>
+    <!-- Shell gradient -->
+    <linearGradient id="shell" x1="120" y1="120" x2="392" y2="430" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#e8edf4"/>
+      <stop offset="1" stop-color="#6c87ad"/>
+    </linearGradient>
+  </defs>
+
+  <!-- App-icon rounded square background -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- Scallop shell: a fan of ribs rising from a hinge at the bottom -->
+  <g transform="translate(256 300)">
+    <!-- shell body -->
+    <path d="M0 96
+             C -150 96 -188 -28 -150 -96
+             C -120 -150 -60 -176 0 -176
+             C 60 -176 120 -150 150 -96
+             C 188 -28 150 96 0 96 Z"
+          fill="url(#shell)" stroke="#f5f7fa" stroke-width="6" stroke-opacity="0.5"/>
+    <!-- shell ribs -->
+    <g stroke="#395078" stroke-width="7" stroke-linecap="round" stroke-opacity="0.45" fill="none">
+      <path d="M0 90 L0 -170"/>
+      <path d="M0 90 L-52 -158"/>
+      <path d="M0 90 L52 -158"/>
+      <path d="M0 90 L-100 -130"/>
+      <path d="M0 90 L100 -130"/>
+      <path d="M0 90 L-138 -86"/>
+      <path d="M0 90 L138 -86"/>
+    </g>
+    <!-- hinge -->
+    <circle cx="0" cy="92" r="16" fill="#2e4062"/>
+  </g>
+
+  <!-- The pearl, nestled in front of the shell hinge -->
+  <circle cx="256" cy="356" r="58" fill="url(#pearl)"/>
+  <circle cx="236" cy="336" r="16" fill="#ffffff" fill-opacity="0.85"/>
+</svg>
