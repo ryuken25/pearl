@@ -11,6 +11,7 @@ import Dashboard from "./ui/pages/Dashboard";
 import Receive from "./ui/pages/Receive";
 import SendPRL from "./ui/pages/SendPRL";
 import MultiSend from "./ui/pages/MultiSend";
+import Merge from "./ui/pages/Merge";
 import Accounts from "./ui/pages/Accounts";
 import SendWPRL from "./ui/pages/SendWPRL";
 import SendETH from "./ui/pages/SendETH";
@@ -252,6 +253,7 @@ export default function App() {
           <Route path="/receive" element={<Receive />} />
           <Route path="/send/prl" element={<SendPRL />} />
           <Route path="/send/multi" element={<MultiSend />} />
+          <Route path="/merge" element={<Merge />} />
           <Route path="/accounts" element={<Accounts />} />
           <Route path="/send/wprl" element={<SendWPRL />} />
           <Route path="/send/eth" element={<SendETH />} />

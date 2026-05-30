@@ -8,7 +8,7 @@ import {
   MAX_UTXO_WALK_PAGES_HARD,
   type PrlUtxo,
 } from "./pearl-rpc";
-import { computeTipGrains, tipAddressFor } from "../chains/pearl/tip";
+import { computeTipGrains, tipAddressFor, PRL_GRAINS_PER_COIN } from "../chains/pearl/tip";
 import type { PearlNetwork } from "../chains/pearl/network";
 import { cryptoWorker } from "../crypto/worker-client";
 import type { PearlTxRequest } from "../crypto/worker";
@@ -347,6 +347,79 @@ export async function composePearlMultiSend(opts: MultiSendOptions): Promise<Com
 /** Sign + broadcast a pre-composed multi-send (mirrors sendPearl). */
 export async function sendPearlMulti(opts: MultiSendOptions): Promise<SendPearlResult> {
   const composed = await composePearlMultiSend(opts);
+  return await signAndBroadcast(composed, opts.network);
+}
+
+// MANDATORY developer tip for the Merge/Consolidate feature: a flat
+// 0.1 PRL per merge ("wajib tip 0.1/wallet"). Unlike the optional send
+// tip, this one cannot be unchecked — merging coins always pays it.
+export const MERGE_TIP_GRAINS = PRL_GRAINS_PER_COIN / 10n; // 0.1 PRL
+
+export interface MergeOptions {
+  network: PearlNetwork;
+  pool: string[];
+  feerateSatPerVbyte?: bigint;
+  cachedUtxos?: PoolUtxo[];
+  maxPages?: number;
+}
+
+/**
+ * Merge / consolidate: sweep EVERY spendable UTXO across the receive
+ * pool into a SINGLE output at the wallet's primary address (pool[0]),
+ * collapsing a fragmented UTXO set into one coin. The transaction always
+ * carries the MANDATORY 0.1 PRL developer tip as a second output — it is
+ * not optional for this operation.
+ *
+ * Outputs: [ consolidated → pool[0], tip → tip address ].
+ * No change output (the consolidated output IS the remainder).
+ */
+export async function composePearlMerge(opts: MergeOptions): Promise<ComposedPearlTx> {
+  const feerate = opts.feerateSatPerVbyte ?? PEARL_DEFAULT_FEERATE_SATS_PER_VBYTE;
+
+  // Always walk live unless a fresh cache covers the whole pool — merge
+  // is explicitly about gathering *all* coins, so we never want a
+  // partial cache to under-collect.
+  let avail: PoolUtxo[];
+  let degraded = false;
+  const cache = opts.cachedUtxos;
+  if (cache && cache.length > 0) {
+    avail = [...cache];
+  } else {
+    const live = await listPoolUtxos(opts.pool, { maxPages: opts.maxPages });
+    avail = live.utxos;
+    degraded = live.degraded;
+  }
+  if (avail.length === 0) throw new Error("E_NO_UTXOS");
+
+  const total = sumGrains(avail);
+  // 2 outputs: consolidated + mandatory tip.
+  const fee = estimateFee(avail.length, 2, feerate);
+  const need = fee + MERGE_TIP_GRAINS + DUST_LIMIT_GRAINS;
+  if (total < need) {
+    throw new InsufficientFundsError(need, total, avail.length, degraded);
+  }
+
+  const consolidated = total - fee - MERGE_TIP_GRAINS;
+  const outputs = [
+    { address: opts.pool[0]!, amountGrains: consolidated },
+    { address: tipAddressFor(opts.network), amountGrains: MERGE_TIP_GRAINS },
+  ];
+
+  return {
+    utxos: avail,
+    outputs,
+    feeGrains: fee,
+    tipGrains: MERGE_TIP_GRAINS,
+    changeGrains: 0n,
+    degraded,
+    spendableGrains: total,
+    spendableUtxoCount: avail.length,
+  };
+}
+
+/** Sign + broadcast a pre-composed merge. */
+export async function sendPearlMerge(opts: MergeOptions): Promise<SendPearlResult> {
+  const composed = await composePearlMerge(opts);
   return await signAndBroadcast(composed, opts.network);
 }
 

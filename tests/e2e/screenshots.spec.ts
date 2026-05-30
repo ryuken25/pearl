@@ -195,7 +195,15 @@ test("full wallet walkthrough screenshots", async ({ page }) => {
   await shot(page, "13-multisend-confirm.png");
   await toDash();
 
-  // 13) Settings — tip configuration
+  // 13) Merge / consolidate — mandatory 0.1 PRL tip
+  await page.getByRole("link", { name: "Merge coins" }).click();
+  await page.getByTestId("merge-review").click();
+  await expect(page.getByText("Confirm merge")).toBeVisible({ timeout: 20000 });
+  await expect(page.getByText("Dev tip (mandatory)")).toBeVisible();
+  await shot(page, "15-merge-confirm.png");
+  await toDash();
+
+  // 14) Settings — tip configuration
   await page.getByRole("link", { name: "Settings" }).click();
   await expect(page.getByTestId("settings-tip-amount")).toBeVisible();
   await page.getByTestId("settings-tip-amount").scrollIntoViewIfNeeded();

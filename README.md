@@ -23,8 +23,9 @@ fitur: rebrand, Receive terkunci, tip developer, multi-akun, dan multi-send.
   - [3. Menerima PRL (Receive)](#3-menerima-prl-receive)
   - [4. Mengirim PRL — dengan / tanpa tip](#4-mengirim-prl--dengan--tanpa-tip)
   - [5. Multi-send (kirim ke banyak alamat sekaligus)](#5-multi-send)
-  - [6. Multi-akun (ganti akun)](#6-multi-akun)
-  - [7. Pengaturan tip](#7-pengaturan-tip)
+  - [6. Merge / Consolidate (gabung koin)](#6-merge--consolidate-gabung-koin)
+  - [7. Multi-akun (ganti akun)](#7-multi-akun)
+  - [8. Pengaturan tip](#8-pengaturan-tip)
 - [Soal keamanan (penting)](#soal-keamanan-penting)
 - [Build dari source](#build-dari-source)
 - [Apa yang dipakai-ulang vs ditambahkan](#apa-yang-dipakai-ulang-vs-ditambahkan)
@@ -40,6 +41,7 @@ fitur: rebrand, Receive terkunci, tip developer, multi-akun, dan multi-send.
 | **Send + tip opsional** | Setiap pengiriman menampilkan checkbox "Send 0.5 PRL tip to support the dev" (**dicentang secara default**, bisa dimatikan). |
 | **Multi-akun** | Impor/restore banyak akun dari seed phrase, lihat daftarnya, ganti akun aktif (gaya Zano). |
 | **Multi-send** | Kirim ke banyak penerima dalam **satu transaksi** (gaya batch OKX). |
+| **Merge / Consolidate** | Gabungkan semua UTXO menjadi **satu koin** di alamat utama. **Wajib** menyertakan tip developer **0.1 PRL** per merge (tidak bisa dimatikan). |
 | **Aman & ringan** | Auto-lock, ekspor seed auto-hide, RPC allowlist + CSP bawaan dipertahankan. Semua RPC/signing dibungkus try/catch — tidak crash saat jaringan gagal. |
 
 ---
@@ -118,7 +120,24 @@ secara teknis aman karena UTXO yang sama tidak mungkin dipakai dua kali).
    **Fee**, **Dev tip**, **Change**, dan **Total leaving wallet**.
 5. Ketuk **Send to N** untuk broadcast.
 
-### 6. Multi-akun
+### 6. Merge / Consolidate (gabung koin)
+
+Menggabungkan semua UTXO yang tersebar menjadi **satu koin** di alamat utama
+Anda — membuat pengiriman berikutnya lebih murah & cepat (lebih sedikit input
+yang ditandatangani).
+
+1. Dashboard → **Merge coins**.
+2. Pilih fee tier, lalu **Review merge**.
+3. Ringkasan menampilkan: jumlah UTXO, total terkumpul, fee, **Dev tip
+   (mandatory) 0.1 PRL**, dan hasil **Consolidated into 1 coin** yang kembali
+   ke alamat utama Anda.
+4. Ketuk **Merge coins** untuk broadcast.
+
+> 💡 **Tip wajib 0.1 PRL.** Berbeda dengan tip pada Send (yang opsional), operasi
+> **Merge selalu** menyertakan tip developer **0.1 PRL per merge** dan **tidak
+> bisa dimatikan**. Pengiriman biasa tetap gratis di luar fee jaringan.
+
+### 7. Multi-akun
 
 1. Dashboard → ketuk **chip akun** di atas (atau tombol **Accounts**).
 2. Daftar semua akun muncul; akun aktif ditandai **Active**.
@@ -135,7 +154,7 @@ secara teknis aman karena UTXO yang sama tidak mungkin dipakai dua kali).
 > seed yang sama secara paralel bisa membuat satu perangkat mencoba membelanjakan
 > koin yang sudah dipindahkan perangkat lain (transaksi gagal/tertolak).
 
-### 7. Pengaturan tip
+### 8. Pengaturan tip
 
 **Settings → Support the dev (tip):**
 - **Aktif/nonaktif** tip secara global (default: aktif).
@@ -214,6 +233,8 @@ APK siap-pakai sudah disertakan di **`dist/mobile-pearl-wallet.apk`**.
 - Multi-akun: tabel keystore multi-record + pointer akun aktif (`src/storage/db.ts`,
   `src/state/wallet-store.ts`, halaman `Accounts`).
 - Multi-send: `composePearlMultiSend` (satu tx multi-output) + halaman `MultiSend`.
+- Merge/Consolidate: `composePearlMerge` (sapu semua UTXO → 1 koin) dengan tip
+  **wajib 0.1 PRL** (`MERGE_TIP_GRAINS`) + halaman `Merge`.
 - Capacitor (Android) + skrip ikon + walkthrough Playwright.
 
 Lihat **laporan akhir** (final report) di chat untuk hasil tes derivasi dan

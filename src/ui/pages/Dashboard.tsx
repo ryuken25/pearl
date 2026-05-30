@@ -153,6 +153,11 @@ export default function Dashboard() {
             <Link to="/accounts" className="btn-secondary tap">Accounts</Link>
           </div>
         )}
+        <div className="mt-2">
+          <Link to="/merge" className="btn-secondary tap block w-full text-center">
+            Merge coins
+          </Link>
+        </div>
         {multisigEnabled && (
           <div className="mt-2">
             <Link to="/vaults" className="btn-secondary block w-full text-center">
